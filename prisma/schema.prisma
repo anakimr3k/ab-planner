@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modèle pour les examens (Page Dashboard)
+model Examen {
+  id        String   @id @default(cuid())
+  userId    String   // C'est ici qu'on stockera l'ID Clerk de l'utilisateur
+  matiere   String
+  date      String   // On stocke la date en texte pour simplifier au début
+  createdAt DateTime @default(now())
+}
+
+// Modèle pour la To-Do List (Page Todo)
+model Todo {
+  id            String    @id @default(cuid())
+  userId        String    // C've ID Clerk
+  text          String
+  type          String    // 'habit' ou 'goal'
+  completedDays Boolean[] // Tableau des 7 jours [false, true, ...]
+  createdAt     DateTime  @default(now())
+}

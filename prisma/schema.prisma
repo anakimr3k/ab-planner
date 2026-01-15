@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,21 +10,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modèle pour les examens (Page Dashboard)
+// Table pour tes examens
 model Examen {
   id        String   @id @default(cuid())
-  userId    String   // C'est ici qu'on stockera l'ID Clerk de l'utilisateur
   matiere   String
-  date      String   // On stocke la date en texte pour simplifier au début
+  date      String
+  userId    String   // Lien avec l'ID de l'utilisateur Clerk
   createdAt DateTime @default(now())
 }
 
-// Modèle pour la To-Do List (Page Todo)
+// Table pour ta To-Do List (Optionnel mais recommandé pour la suite)
 model Todo {
-  id            String    @id @default(cuid())
-  userId        String    // C've ID Clerk
-  text          String
-  type          String    // 'habit' ou 'goal'
-  completedDays Boolean[] // Tableau des 7 jours [false, true, ...]
-  createdAt     DateTime  @default(now())
+  id        String   @id @default(cuid())
+  task      String
+  completed Boolean  @default(false)
+  userId    String   // Lien avec l'ID de l'utilisateur Clerk
+  createdAt DateTime @default(now())
 }

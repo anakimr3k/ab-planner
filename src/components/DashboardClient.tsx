@@ -139,13 +139,13 @@ export default function DashboardClient({ initialExamens }: { initialExamens: Ex
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-6">Productivité</h3>
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center">
+              <h3 className="font-bold text-gray-900 mb-6 text-left">Productivité</h3>
               <div className="h-2 bg-gray-50 rounded-full overflow-hidden">
                 <div className="w-1/3 h-full bg-blue-600"></div>
               </div>
-              <p className="text-[10px] text-gray-400 mt-4 italic text-center leading-relaxed">
-                Données sécurisées via Neon <br />
+              <p className="text-[10px] text-gray-400 mt-4 italic leading-relaxed">
+                Données synchronisées avec Neon <br />
                 © Abdel-hakim Bourahla
               </p>
             </div>

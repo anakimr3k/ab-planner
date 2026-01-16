@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, CheckCircle2, ArrowLeft, Plus, Loader2 } from "lucide-react";
+import { LayoutDashboard, CheckCircle2, ArrowLeft, Plus } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 
 export default function TodoPage() {
@@ -31,7 +31,7 @@ export default function TodoPage() {
             <UserButton />
             <span className="text-xs font-bold text-gray-500 tracking-tight">Mon Compte</span>
           </div>
-          <div className="text-[10px] text-gray-300 font-medium leading-tight">
+          <div className="text-[10px] text-gray-300 font-medium leading-tight text-center">
             <p>Fait par Abdel-hakim B.</p>
             <p>© 2026 Abdel-hakim Bourahla</p>
           </div>
@@ -56,18 +56,8 @@ export default function TodoPage() {
               </div>
               <h3 className="text-xl font-bold text-gray-800">Bientôt disponible</h3>
               <p className="text-gray-400 mt-2 max-w-xs mx-auto">
-                Je travaille sur la connexion de cette liste avec la base de données Neon.
+                Abdel-hakim B. travaille sur la synchronisation des tâches avec Neon.
               </p>
-            </div>
-
-            {/* Aperçu du formulaire futur */}
-            <div className="mt-8 opacity-50 pointer-events-none">
-              <div className="flex gap-4">
-                <input type="text" placeholder="Nouvelle tâche..." className="flex-1 bg-gray-50 border-none rounded-xl px-5 py-4 text-sm font-semibold" />
-                <button className="bg-gray-900 text-white rounded-2xl px-8 py-4 font-bold flex items-center gap-2">
-                  <Plus size={20} /> Ajouter
-                </button>
-              </div>
             </div>
           </div>
         </div>

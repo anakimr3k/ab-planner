@@ -1,188 +1,101 @@
-"use client";
+import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import Link from "next/link";
+import { ArrowRight, CheckCircle, BookOpen, Cloud, Layout } from "lucide-react";
 
-import React, { useState, useEffect } from 'react';
-import { Upload, Plus, Calendar, CheckCircle2, FileText, Trash2, LayoutDashboard, Loader2 } from "lucide-react";
-import Link from 'next/link';
-import { createExamen } from "./actions/examen"; // Import de l'action de sauvegarde
-
-interface Examen {
-  id: string;
-  matiere: string;
-  date: string;
-}
-
-export default function Page() {
-  const [examens, setExamens] = useState<Examen[]>([]);
-  const [nomMatiere, setNomMatiere] = useState("");
-  const [dateExamen, setDateExamen] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Fonction pour sauvegarder réellement dans Neon
-  const handleAjouterExamen = async () => {
-    if (nomMatiere && dateExamen) {
-      setIsSaving(true);
-      try {
-        // 1. Appel de l'action serveur qui parle à Prisma & Neon
-        await createExamen(nomMatiere, dateExamen);
-        
-        // 2. Mise à jour locale pour le visuel immédiat
-        const nouvelExamen = {
-          id: Date.now().toString(),
-          matiere: nomMatiere,
-          date: dateExamen
-        };
-        setExamens([...examens, nouvelExamen]);
-        
-        // 3. Reset du formulaire
-        setNomMatiere("");
-        setDateExamen("");
-      } catch (error) {
-        alert("Erreur lors de la sauvegarde. Vérifie ta connexion.");
-      } finally {
-        setIsSaving(false);
-      }
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setIsUploading(true);
-      setTimeout(() => {
-        setIsUploading(false);
-        alert(`Fichier "${file.name}" reçu ! Analyse en cours...`);
-      }, 1500);
-    }
-  };
-
-  const supprimerExamen = (id: string) => {
-    setExamens(examens.filter(ex => ex.id !== id));
-  };
-
+export default function Home() {
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex">
-      {/* SIDEBAR FIXE */}
-      <aside className="w-64 bg-white border-r border-gray-100 p-6 flex flex-col fixed h-full z-10">
-        <div className="mb-10">
-          <h1 className="text-xl font-bold text-blue-600 tracking-tight">A.B. Planner</h1>
-          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">Student OS</p>
-        </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-200 text-slate-900 p-6">
+      
+      {/* Container Principal */}
+      <div className="max-w-3xl w-full text-center space-y-12 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
         
-        <nav className="space-y-2">
-          <Link href="/">
-            <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-600 rounded-xl font-bold cursor-pointer transition-all">
-              <LayoutDashboard size={18} /> Dashboard
-            </div>
-          </Link>
-
-          <Link href="/todo">
-            <div className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-50 hover:text-blue-600 rounded-xl font-semibold transition-all cursor-pointer group">
-              <CheckCircle2 size={18} className="group-hover:text-blue-600" /> To-Do List
-            </div>
-          </Link>
-        </nav>
-
-        <div className="mt-auto pt-6 border-t border-gray-50">
-          <p className="text-[10px] text-gray-300 text-center font-medium">© 2026 AB Planner</p>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT */}
-      <main className="flex-1 ml-64 p-8">
-        <header className="flex justify-between items-center mb-10">
-          <div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Mon Espace</h2>
-            <p className="text-gray-500 mt-1 font-medium">Tes données sont maintenant sauvegardées dans le cloud.</p>
+        {/* En-tête / Titre */}
+        <div className="space-y-6">
+          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold text-sm mb-4">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+            </span>
+            Système synchronisé avec Neon
           </div>
-        </header>
+          
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
+            AB Planner <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              Student OS
+            </span>
+          </h1>
+          
+          <p className="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            L'outil ultime pour organiser ta vie d'étudiant. 
+            Planifie tes examens, gère tes tâches et synchronise tout dans le cloud.
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* ZONE UPLOAD */}
-            <div 
-              onClick={() => document.getElementById('fileInput')?.click()}
-              className={`relative border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center transition-all cursor-pointer
-                ${isUploading ? 'border-blue-400 bg-blue-50' : 'border-gray-100 bg-white hover:border-blue-300 hover:shadow-2xl hover:scale-[1.01]'}`}
-            >
-              <input type="file" id="fileInput" className="hidden" accept=".pdf" onChange={handleFileUpload} />
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${isUploading ? 'bg-blue-600 text-white animate-bounce' : 'bg-blue-50 text-blue-600'}`}>
-                <Upload size={28} />
-              </div>
-              <h3 className="text-xl font-bold text-gray-800">
-                {isUploading ? "Analyse du PDF..." : "Importer ton emploi du temps"}
-              </h3>
+        {/* Liste des fonctionnalités (Icônes) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8 border-t border-gray-100 border-b">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+              <BookOpen size={32} />
             </div>
+            <h3 className="font-bold text-lg">Examens</h3>
+            <p className="text-sm text-gray-400">Suivi des dates et matières</p>
+          </div>
+          
+          <div className="flex flex-col items-center space-y-3">
+            <div className="p-3 bg-green-100 text-green-600 rounded-2xl">
+              <CheckCircle size={32} />
+            </div>
+            <h3 className="font-bold text-lg">To-Do List</h3>
+            <p className="text-sm text-gray-400">Tâches quotidiennes</p>
+          </div>
 
-            {/* LISTE DES EXAMENS */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900">Tes prochains examens</h3>
-              </div>
+          <div className="flex flex-col items-center space-y-3">
+            <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl">
+              <Cloud size={32} />
+            </div>
+            <h3 className="font-bold text-lg">Cloud Sync</h3>
+            <p className="text-sm text-gray-400">Sauvegarde automatique</p>
+          </div>
+        </div>
 
-              {examens.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
-                  <FileText size={32} className="mx-auto text-gray-200 mb-3" />
-                  <p className="text-gray-400 font-medium text-sm">Aucun examen pour le moment.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {examens.map((ex) => (
-                    <div key={ex.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-blue-100 transition-all">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-sm">
-                          <Calendar size={18} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900">{ex.matiere}</p>
-                          <p className="text-xs text-gray-400 font-bold uppercase">{ex.date}</p>
-                        </div>
-                      </div>
-                      <button onClick={() => supprimerExamen(ex.id)} className="text-gray-300 hover:text-red-500 p-2">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+        {/* Zone de Connexion (Logique Clerk) */}
+        <div className="flex flex-col items-center gap-4 pt-4">
+          
+          {/* Affiche ceci si l'utilisateur n'est PAS connecté */}
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="group relative inline-flex items-center gap-3 justify-center rounded-full bg-blue-600 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-blue-700 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+                Commencer gratuitement
+                <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </SignInButton>
+            <p className="text-sm text-gray-400 mt-4">
+              Connexion sécurisée via Google ou Email.
+            </p>
+          </SignedOut>
 
-              {/* FORMULAIRE D'AJOUT RÉEL */}
-              <div className="mt-8 pt-8 border-t border-gray-50 grid grid-cols-2 gap-4">
-                <input 
-                  type="text" placeholder="Matière" 
-                  value={nomMatiere} onChange={(e) => setNomMatiere(e.target.value)}
-                  className="bg-gray-50 border-none rounded-xl px-5 py-4 text-sm font-semibold focus:ring-2 focus:ring-blue-500"
-                />
-                <input 
-                  type="date" 
-                  value={dateExamen} onChange={(e) => setDateExamen(e.target.value)}
-                  className="bg-gray-50 border-none rounded-xl px-5 py-4 text-sm font-semibold focus:ring-2 focus:ring-blue-500"
-                />
-                <button 
-                  onClick={handleAjouterExamen}
-                  disabled={isSaving}
-                  className="col-span-2 bg-gray-900 text-white rounded-2xl py-4 font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                >
-                  {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-                  {isSaving ? "Enregistrement..." : "Ajouter et Sauvegarder"}
+          {/* Affiche ceci si l'utilisateur EST déjà connecté */}
+          <SignedIn>
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-lg font-medium text-gray-700">Heureux de te revoir ! 👋</p>
+              <Link href="/dashboard">
+                <button className="group inline-flex items-center gap-2 rounded-full bg-green-600 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-green-700 hover:shadow-lg hover:-translate-y-1">
+                  <Layout size={20} />
+                  Accéder à mon Dashboard
+                  <ArrowRight className="group-hover:translate-x-1 transition-transform" />
                 </button>
-              </div>
+              </Link>
             </div>
-          </div>
+          </SignedIn>
 
-          {/* STATS RAPIDES */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-6">Productivité</h3>
-              <div className="h-2 bg-gray-50 rounded-full overflow-hidden">
-                <div className="w-1/3 h-full bg-blue-600"></div>
-              </div>
-              <p className="text-[11px] text-gray-400 mt-4 italic text-center">Données synchronisées avec Neon</p>
-            </div>
-          </div>
         </div>
-      </main>
+      </div>
+
+      {/* Footer simple */}
+      <footer className="mt-12 text-center text-gray-400 text-sm">
+        © 2026 AB Planner. Ton organisation, simplifiée.
+      </footer>
     </div>
   );
 }

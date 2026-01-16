@@ -1,14 +1,12 @@
-import { getTodos } from "@/app/actions/todo";
-import TodoClient from "@/components/TodoClient";
+import { getMesExamens } from "@/app/actions/examen";
+import DashboardClient from "@/components/DashboardClient";
 
-/**
- * Page de la To-Do List (Côté Serveur)
- * Réalisée par Abdel-hakim B.
- */
-export default async function TodoPage() {
-  // Récupération des tâches depuis Neon via l'action serveur
-  const todos = await getTodos();
+export default async function DashboardPage() {
+  // 1. On récupère les examens depuis Neon (Server Side)
+  // Cette fonction utilise l'ID de l'utilisateur connecté via Clerk
+  const examens = await getMesExamens();
 
-  // On passe les données au composant client qui gère l'affichage et l'interaction
-  return <TodoClient initialTodos={todos} />;
+  // 2. On passe ces données à ton composant Client (ton design)
+  // On utilise "initialExamens" pour que la liste s'affiche immédiatement
+  return <DashboardClient initialExamens={examens} />;
 }

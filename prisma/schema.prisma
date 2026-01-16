@@ -27,10 +27,3 @@ model Todo {
   userId    String   // Lien avec l'ID de l'utilisateur Clerk
   createdAt DateTime @default(now())
 }
-model Todo {
-  id        String   @id @default(cuid())
-  userId    String   // L'ID Clerk de l'utilisateur
-  text      String
-  completed Boolean  @default(false)
-  createdAt DateTime @default(dateTime())
-}

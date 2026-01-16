@@ -21,7 +21,7 @@ export async function createTodo(text: string) {
   await db.todo.create({
     data: { 
       userId, 
-      text,
+      title: text,
       completed: false // Optionnel car par défaut dans le schéma, mais plus sûr
     },
   });

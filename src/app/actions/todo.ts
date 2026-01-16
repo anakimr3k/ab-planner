@@ -18,13 +18,13 @@ export async function createTodo(text: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Non autorisé");
   
-  await db.todo.create({
-    data: { 
-      userId, 
-      text, // On utilise 'text' car c'est le nom dans ton schema.prisma
-      completed: false 
-    },
-  });
+await db.todo.create({
+  data: { 
+    userId, 
+    text: text, // Ici, le premier 'text' est le nom dans la base, le second est ta variable
+    completed: false 
+  },
+});
   
   revalidatePath("/dashboard/todo");
 }

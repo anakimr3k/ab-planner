@@ -22,8 +22,8 @@ model Examen {
 // Table pour ta To-Do List (Optionnel mais recommandé pour la suite)
 model Todo {
   id        String   @id @default(cuid())
-  task      String
+  userId    String
+  text      String
   completed Boolean  @default(false)
-  userId    String   // Lien avec l'ID de l'utilisateur Clerk
   createdAt DateTime @default(now())
 }

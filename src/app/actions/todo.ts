@@ -21,8 +21,8 @@ export async function createTodo(text: string) {
   await db.todo.create({
     data: { 
       userId, 
-      title: text,
-      completed: false // Optionnel car par défaut dans le schéma, mais plus sûr
+      text, // On utilise 'text' car c'est le nom dans ton schema.prisma
+      completed: false 
     },
   });
   

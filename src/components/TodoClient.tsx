@@ -1,111 +1,122 @@
 "use client";
 
-import React, { useState } from 'react';
-import { LayoutDashboard, CheckCircle2, ArrowLeft, Plus, Trash2, Loader2 } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { LayoutDashboard, CheckCircle2, Plus, Trash2, Calendar, Moon, Sun, Table as TableIcon, ListTodo } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import Link from 'next/link';
-import { createTodo, toggleTodo, deleteTodo } from "@/app/actions/todo";
+import { createTodo, toggleDay, deleteTodo } from "@/app/actions/todo";
 
-interface Todo {
-  id: string;
-  text: string;
-  completed: boolean;
-}
+const DAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAYS_FR = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
-export default function TodoClient({ initialTodos }: { initialTodos: Todo[] }) {
+export default function TodoClient({ initialTodos }: { initialTodos: any[] }) {
+  const [mounted, setMounted] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const [text, setText] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
 
-  const handleAdd = async () => {
-    if (!text.trim()) return;
-    setIsSaving(true);
-    await createTodo(text);
-    setText("");
-    setIsSaving(false);
+  useEffect(() => {
+    setMounted(true);
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    if (!darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.theme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.theme = 'light';
+    }
   };
 
+  if (!mounted) return null;
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex">
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-gray-100 p-6 flex flex-col fixed h-full z-10">
-        <div className="mb-10">
-          <h1 className="text-xl font-bold text-blue-600 tracking-tight">A.B. Planner</h1>
-          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">Student OS</p>
-        </div>
-        <nav className="space-y-2 flex-1">
-          <Link href="/dashboard">
-            <div className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-50 rounded-xl font-semibold">
-              <LayoutDashboard size={18} /> Dashboard
+    <div className={`${darkMode ? 'dark' : ''}`}>
+      <div className="min-h-screen bg-[#FBFBFA] dark:bg-[#191919] flex text-[#37352F] dark:text-[#E3E3E3] transition-colors duration-300">
+        {/* SIDEBAR */}
+        <aside className="w-64 bg-[#F7F6F3] dark:bg-[#202020] border-r border-gray-200 dark:border-white/5 p-4 flex flex-col fixed h-full z-20">
+          <div className="flex items-center justify-between mb-6 px-2">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white text-[10px] font-bold">AB</div>
+              <span className="font-bold text-sm">A.B. Planner</span>
             </div>
-          </Link>
-          <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-600 rounded-xl font-bold">
-            <CheckCircle2 size={18} /> To-Do List
-          </div>
-        </nav>
-        <div className="mt-auto pt-6 border-t border-gray-50 space-y-4">
-          <div className="flex items-center gap-3"><UserButton /><span className="text-xs font-bold text-gray-500">Mon Compte</span></div>
-          <div className="text-[10px] text-gray-300 font-medium">
-            <p>Fait par Abdel-hakim B.</p>
-            <p>© 2026 Abdel-hakim Bourahla</p>
-          </div>
-        </div>
-      </aside>
-
-      {/* MAIN */}
-      <main className="flex-1 ml-64 p-8">
-        <header className="mb-10">
-          <Link href="/dashboard" className="text-blue-600 flex items-center gap-2 mb-4 text-sm font-bold"><ArrowLeft size={16} /> Retour</Link>
-          <h2 className="text-3xl font-black text-gray-900 tracking-tight">Ma To-Do List</h2>
-          <p className="text-gray-500 mt-1 font-medium">Gestion de tes tâches par Abdel-hakim B.</p>
-        </header>
-
-        <div className="max-w-2xl space-y-6">
-          <div className="flex gap-3 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-            <input 
-              type="text" 
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Quelle est la prochaine étape ?" 
-              className="flex-1 bg-transparent border-none px-4 py-3 text-sm font-semibold focus:ring-0" 
-            />
-            <button 
-              onClick={handleAdd}
-              disabled={isSaving}
-              className="bg-blue-600 text-white rounded-xl px-6 font-bold hover:bg-blue-700 transition-all flex items-center gap-2"
-            >
-              {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-              Ajouter
+            <button onClick={toggleDarkMode} className="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors">
+              {darkMode ? <Sun size={14} /> : <Moon size={14} />}
             </button>
           </div>
+          <nav className="space-y-1 flex-1 text-sm font-medium">
+            <Link href="/dashboard" className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-200 dark:hover:bg-white/5 rounded-md transition-colors"><LayoutDashboard size={16} /> Dashboard</Link>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#EBEAEA] dark:bg-white/10 rounded-md font-bold text-blue-600 dark:text-blue-400"><CheckCircle2 size={16} /> Habitudes</div>
+            <Link href="/dashboard/schedule" className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-200 dark:hover:bg-white/5 rounded-md transition-colors"><Calendar size={16} /> Planning</Link>
+          </nav>
+          <div className="mt-auto pt-4 border-t border-gray-200 dark:border-white/5"><UserButton /></div>
+        </aside>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            {initialTodos.length === 0 ? (
-              <p className="text-center py-10 text-gray-400 font-medium italic">Aucune tâche en cours. Repose-toi !</p>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {initialTodos.map((todo) => (
-                  <div key={todo.id} className="flex items-center justify-between p-5 hover:bg-gray-50/50 transition-all group">
-                    <div className="flex items-center gap-4">
-                      <input 
-                        type="checkbox" 
-                        checked={todo.completed}
-                        onChange={() => toggleTodo(todo.id, !todo.completed)}
-                        className="w-5 h-5 rounded-full border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                      />
-                      <span className={`font-semibold text-gray-700 ${todo.completed ? 'line-through text-gray-300' : ''}`}>
-                        {todo.text}
-                      </span>
-                    </div>
-                    <button onClick={() => deleteTodo(todo.id)} className="text-gray-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* MAIN */}
+        <main className="ml-64 flex-1 p-12">
+          <header className="mb-10">
+            <h2 className="text-4xl font-bold tracking-tight mb-2">Habitudes</h2>
+            <p className="text-gray-500 dark:text-gray-400 font-medium italic">"La discipline est la mère du succès."</p>
+          </header>
+
+          {/* INPUT */}
+          <div className="mb-8 max-w-2xl">
+            <div className="flex items-center gap-2 bg-white dark:bg-[#252525] rounded-xl px-4 py-3 border border-gray-200 dark:border-white/5 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+              <Plus size={18} className="text-gray-400" />
+              <input 
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && createTodo(text).then(() => setText(""))}
+                placeholder="Nouvel objectif hebdomadaire..."
+                className="w-full bg-transparent border-none focus:ring-0 text-sm font-medium outline-none"
+              />
+            </div>
           </div>
-        </div>
-      </main>
+
+          {/* GRILLE */}
+          <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-[#F7F6F3] dark:bg-[#2a2a2a] text-[11px] uppercase tracking-widest text-gray-400 font-bold">
+                  <th className="p-4 text-left">Habitude</th>
+                  {DAYS_FR.map(d => <th key={d} className="p-4 text-center">{d}</th>)}
+                  <th className="p-4 w-12"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                {initialTodos.map((todo) => (
+                  <tr key={todo.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] group transition-colors">
+                    <td className="p-4 text-sm font-bold">{todo.task}</td>
+                    {DAYS_EN.map((day) => {
+                      const isDone = todo.completedDays?.split(",").includes(day);
+                      return (
+                        <td key={day} className="p-4 text-center">
+                          <button 
+                            onClick={() => toggleDay(todo.id, day)}
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center m-auto transition-all ${
+                              isDone ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : 'border-2 border-gray-200 dark:border-white/10 hover:border-blue-400'
+                            }`}
+                          >
+                            {isDone && <CheckCircle2 size={14} />}
+                          </button>
+                        </td>
+                      );
+                    })}
+                    <td className="p-4">
+                      <button onClick={() => deleteTodo(todo.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

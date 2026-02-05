@@ -1,16 +1,19 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client'
 
-// Cette configuration permet d'éviter de créer une nouvelle instance de 
-// Prisma à chaque fois que Next.js rafraîchit une page en mode développement.
 const prismaClientSingleton = () => {
-  return new PrismaClient();
-};
-
-declare global {
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
+  return new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
+  })
 }
 
-export const prisma = globalThis.prisma ?? prismaClientSingleton();
-export const db = prisma;
+declare global {
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>
+}
 
-if (process.env.NODE_ENV !== "production") globalThis.prisma = prisma;
+export const db = globalThis.prisma ?? prismaClientSingleton()
+
+if (process.env.NODE_ENV !== 'production') globalThis.prisma = db

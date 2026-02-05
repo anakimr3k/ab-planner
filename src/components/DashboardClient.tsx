@@ -1,157 +1,147 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Upload, Plus, Calendar, CheckCircle2, FileText, Trash2, LayoutDashboard, Loader2 } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { LayoutDashboard, CheckCircle2, Calendar, Plus, Trash2, Clock, Moon, Sun } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import Link from 'next/link';
-import { createExamen, deleteExamen } from "@/app/actions/examen";
+import { addExamen, deleteExamen } from "@/app/actions/examen";
 
-interface Examen {
-  id: string;
-  matiere: string;
-  date: string;
-}
+export default function DashboardClient({ initialExamens = [] }: { initialExamens: any[] }) {
+  const [mounted, setMounted] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [date, setDate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-export default function DashboardClient({ initialExamens }: { initialExamens: Examen[] }) {
-  const [nomMatiere, setNomMatiere] = useState("");
-  const [dateExamen, setDateExamen] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    // Optionnel : vérifier si l'utilisateur avait déjà choisi le mode sombre
+    if (localStorage.theme === 'dark') setDarkMode(true);
+  }, []);
 
-  const handleAjouterExamen = async () => {
-    if (nomMatiere && dateExamen) {
-      setIsSaving(true);
-      try {
-        await createExamen(nomMatiere, dateExamen);
-        setNomMatiere("");
-        setDateExamen("");
-      } catch (error) {
-        alert("Erreur lors de la sauvegarde.");
-      } finally {
-        setIsSaving(false);
-      }
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    if (!darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.theme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.theme = 'light';
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setIsUploading(true);
-      setTimeout(() => {
-        setIsUploading(false);
-        alert(`Fichier "${file.name}" reçu !`);
-      }, 1500);
-    }
-  };
+  if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex">
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-gray-100 p-6 flex flex-col fixed h-full z-10">
-        <div className="mb-10">
-          <h1 className="text-xl font-bold text-blue-600 tracking-tight">A.B. Planner</h1>
-          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">Student OS</p>
-        </div>
+    <div className={`${darkMode ? 'dark' : ''}`}>
+      <div className="min-h-screen bg-[#FBFBFA] dark:bg-[#191919] flex text-[#37352F] dark:text-[#E3E3E3] transition-colors duration-300">
         
-        <nav className="space-y-2 flex-1">
-          <Link href="/dashboard">
-            <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-600 rounded-xl font-bold cursor-pointer transition-all">
-              <LayoutDashboard size={18} /> Dashboard
+        {/* SIDEBAR */}
+        <aside className="w-64 bg-[#F7F6F3] dark:bg-[#202020] border-r border-gray-200 dark:border-white/5 p-4 flex flex-col fixed h-full z-20">
+          <div className="flex items-center justify-between mb-6 px-2">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white text-[10px] font-bold">AB</div>
+              <span className="font-bold text-sm">A.B. Planner</span>
             </div>
-          </Link>
-
-          <Link href="/dashboard/todo">
-            <div className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-50 hover:text-blue-600 rounded-xl font-semibold transition-all cursor-pointer group">
-              <CheckCircle2 size={18} className="group-hover:text-blue-600" /> To-Do List
+            {/* BOUTON SWITCH CLAIR/SOMBRE */}
+            <button onClick={toggleDarkMode} className="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors text-gray-500 dark:text-gray-400">
+              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
+          
+          <nav className="space-y-1 flex-1 text-sm font-medium">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#EBEAEA] dark:bg-white/10 rounded-md font-bold text-blue-600 dark:text-blue-400">
+              <LayoutDashboard size={16} /> Dashboard
             </div>
-          </Link>
-        </nav>
+            <Link href="/dashboard/todo" className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-200 dark:hover:bg-white/5 rounded-md transition-colors">
+              <CheckCircle2 size={16} /> Habitudes
+            </Link>
+            <Link href="/dashboard/schedule" className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-200 dark:hover:bg-white/5 rounded-md transition-colors">
+              <Calendar size={16} /> Planning
+            </Link>
+          </nav>
 
-        <div className="mt-auto pt-6 border-t border-gray-50 space-y-4">
-          <div className="flex items-center gap-3">
-            <UserButton />
-            <span className="text-xs font-bold text-gray-500 tracking-tight">Mon Compte</span>
+          <div className="mt-auto pt-4 border-t border-gray-200 dark:border-white/5 flex items-center gap-2 px-2">
+            <UserButton /> <span className="text-xs font-semibold">Abdel-hakim B.</span>
           </div>
-          <div className="text-[10px] text-gray-300 font-medium leading-tight">
-            <p>Fait par Abdel-hakim B.</p>
-            <p>© 2026 Abdel-hakim Bourahla</p>
-          </div>
-        </div>
-      </aside>
+        </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 ml-64 p-8">
-        <header className="flex justify-between items-center mb-10">
-          <div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Mon Espace</h2>
-            <p className="text-gray-500 mt-1 font-medium italic text-sm">Design & Dev par Abdel-hakim B.</p>
-          </div>
-        </header>
+        {/* CONTENU PRINCIPAL */}
+        <main className="ml-64 flex-1 p-12 max-w-5xl">
+          <header className="mb-10">
+            <h2 className="text-4xl font-bold tracking-tight mb-2">Tableau de bord</h2>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">Tes priorités et tes prochains contrôles.</p>
+          </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <div onClick={() => document.getElementById('fileInput')?.click()} className="relative border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center transition-all cursor-pointer border-gray-100 bg-white hover:border-blue-300 hover:shadow-xl hover:scale-[1.01]">
-              <input type="file" id="fileInput" className="hidden" accept=".pdf" onChange={handleFileUpload} />
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-blue-50 text-blue-600">
-                <Upload size={28} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* FORMULAIRE (Mode Sombre compatible) */}
+            <div className="lg:col-span-1">
+              <div className="bg-white dark:bg-[#252525] p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm">
+                <h3 className="font-bold mb-4 flex items-center gap-2 text-xs uppercase tracking-widest text-gray-400"><Plus size={16}/> Nouveau Contrôle</h3>
+                <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!subject || !date) return;
+                    setIsSubmitting(true);
+                    await addExamen(subject, date);
+                    setSubject("");
+                    setDate("");
+                    setIsSubmitting(false);
+                  }} className="space-y-3">
+                  <input 
+                    type="text" 
+                    placeholder="Matière" 
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full p-2.5 text-sm bg-gray-50 dark:bg-[#191919] border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none dark:text-white" 
+                  />
+                  <input 
+                    type="date" 
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full p-2.5 text-sm bg-gray-50 dark:bg-[#191919] border border-gray-200 dark:border-white/10 rounded-xl outline-none dark:text-white" 
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting || !subject || !date}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20 transition-all"
+                  >
+                    {isSubmitting ? 'Ajout...' : 'Ajouter'}
+                  </button>
+                </form>
               </div>
-              <h3 className="text-xl font-bold text-gray-800">Importer ton emploi du temps</h3>
             </div>
 
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 tracking-tight">Tes prochains examens</h3>
-              
+            {/* LISTE DES EXAMENS (Mode Sombre compatible) */}
+            <div className="lg:col-span-2 space-y-4">
+              <h3 className="font-bold text-gray-400 text-[11px] uppercase tracking-widest mb-4 italic">Prochaines échéances</h3>
               {initialExamens.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
-                  <FileText size={32} className="mx-auto text-gray-200 mb-3" />
-                  <p className="text-gray-400 font-medium text-sm">Aucun examen pour le moment.</p>
+                <div className="bg-white dark:bg-[#252525] border-2 border-dashed border-gray-100 dark:border-white/5 rounded-3xl p-12 text-center">
+                  <Clock size={32} className="mx-auto mb-3 opacity-20" />
+                  <p className="text-sm font-medium italic text-gray-400">Rien de prévu pour le moment.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {initialExamens.map((ex) => (
-                    <div key={ex.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-blue-100 transition-all">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-sm">
-                          <Calendar size={18} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900 leading-none">{ex.matiere}</p>
-                          <p className="text-[10px] text-gray-400 font-black uppercase mt-1">{ex.date}</p>
-                        </div>
+                initialExamens.map((exam) => (
+                  <div key={exam.id} className="bg-white dark:bg-[#252525] p-5 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex items-center justify-between group hover:border-blue-500/50 transition-all">
+                    <div className="flex items-center gap-5">
+                      <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center font-bold text-[10px] flex-col border border-red-100 dark:border-red-900/30">
+                        <span className="uppercase">{new Date(exam.date).toLocaleDateString('fr-FR', { month: 'short' })}</span>
+                        <span className="text-lg leading-none">{new Date(exam.date).getDate()}</span>
                       </div>
-                      <button onClick={() => deleteExamen(ex.id)} className="text-gray-300 hover:text-red-500 p-2 transition-colors">
-                        <Trash2 size={18} />
-                      </button>
+                      <div>
+                        <h4 className="font-bold text-sm text-gray-800 dark:text-[#E3E3E3]">{exam.subject}</h4>
+                        <p className="text-xs text-gray-400 font-medium italic">{exam.title}</p>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                    <button 
+                    onClick={() => { if(confirm("Supprimer ce contrôle ?")) deleteExamen(exam.id) }}
+                    className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
+                  </div>
+                ))
               )}
-
-              <div className="mt-8 pt-8 border-t border-gray-50 grid grid-cols-2 gap-4">
-                <input type="text" placeholder="Matière" value={nomMatiere} onChange={(e) => setNomMatiere(e.target.value)} className="bg-gray-50 border-none rounded-xl px-5 py-4 text-sm font-semibold focus:ring-2 focus:ring-blue-500"/>
-                <input type="date" value={dateExamen} onChange={(e) => setDateExamen(e.target.value)} className="bg-gray-50 border-none rounded-xl px-5 py-4 text-sm font-semibold focus:ring-2 focus:ring-blue-500"/>
-                <button onClick={handleAjouterExamen} disabled={isSaving} className="col-span-2 bg-gray-900 text-white rounded-2xl py-4 font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg shadow-gray-200">
-                  {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-                  {isSaving ? "Enregistrement..." : "Ajouter et Sauvegarder"}
-                </button>
-              </div>
             </div>
           </div>
-
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center">
-              <h3 className="font-bold text-gray-900 mb-6 text-left">Productivité</h3>
-              <div className="h-2 bg-gray-50 rounded-full overflow-hidden">
-                <div className="w-1/3 h-full bg-blue-600"></div>
-              </div>
-              <p className="text-[10px] text-gray-400 mt-4 italic leading-relaxed">
-                Données synchronisées avec Neon <br />
-                © Abdel-hakim Bourahla
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,12 +1,22 @@
-import { getMesExamens } from "@/app/actions/examen";
+import { db } from "@/lib/db";
+import { auth } from "@clerk/nextjs/server";
 import DashboardClient from "@/components/DashboardClient";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
-  // 1. On récupère les examens depuis Neon (Server Side)
-  // Cette fonction utilise l'ID de l'utilisateur connecté via Clerk
-  const examens = await getMesExamens();
+  const { userId } = await auth();
+  
+  if (!userId) {
+    redirect("/");
+  }
 
-  // 2. On passe ces données à ton composant Client (ton design)
-  // On utilise "initialExamens" pour que la liste s'affiche immédiatement
-  return <DashboardClient initialExamens={examens} />;
+  // Récupération des examens triés par date la plus proche
+  const examens = await db.examen.findMany({
+    where: { userId },
+    orderBy: { date: 'asc' }
+  });
+
+  return (
+    <DashboardClient initialExamens={examens} />
+  );
 }

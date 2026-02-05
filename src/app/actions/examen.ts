@@ -1,23 +1,23 @@
 "use server";
 
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 // --- EXAMENS ---
 
 // 1. Ajouter un examen (Lié à l'utilisateur connecté)
-export async function createExamen(matiere: string, date: string) {
+export async function createExamen(subject: string, date: string) {
   const { userId } = await auth();
 
   if (!userId) {
     throw new Error("Vous devez être connecté pour ajouter un examen.");
   }
 
-  await prisma.examen.create({
+  await db.examen.create({
     data: {
-      matiere,
-      date,
+      subject,
+      date: new Date(date),
       userId, // On attache l'examen à TON compte
     },
   });
@@ -26,13 +26,16 @@ export async function createExamen(matiere: string, date: string) {
   revalidatePath("/dashboard");
 }
 
+// Alias pour compatibilité
+export const addExamen = createExamen;
+
 // 2. Récupérer tes examens
 export async function getMesExamens() {
   const { userId } = await auth();
 
   if (!userId) return [];
 
-  return await prisma.examen.findMany({
+  return await db.examen.findMany({
     where: {
       userId: userId, // Filtre de sécurité
     },
@@ -48,7 +51,7 @@ export async function deleteExamen(id: string) {
   
   if (!userId) throw new Error("Non autorisé");
 
-  await prisma.examen.deleteMany({
+  await db.examen.deleteMany({
     where: {
       id: id,
       userId: userId, // Sécurité : on vérifie que c'est bien le tien

@@ -64,7 +64,7 @@ export default function Home() {
           
           {/* Affiche ceci si l'utilisateur n'est PAS connecté */}
           <SignedOut>
-            <SignInButton mode="modal">
+            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
               <button className="group relative inline-flex items-center gap-3 justify-center rounded-full bg-blue-600 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-blue-700 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
                 Commencer gratuitement
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" />

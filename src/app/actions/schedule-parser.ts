@@ -7,17 +7,6 @@ import pdf from "pdf-parse-fork";
 
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 
-// Récupérer les clés API depuis .env
-function getApiKey(index: number): string {
-  const keys = [
-    process.env.MISTRAL_API_KEY,
-    process.env.MISTRAL_API_KEY_2,
-    process.env.MISTRAL_API_KEY_3,
-    process.env.MISTRAL_API_KEY_4,
-  ];
-  return keys[index] || keys[0] || "";
-}
-
 function cleanTime(timeStr: string): string {
   let cleaned = timeStr.toLowerCase().replace(/[^0-9h:]/g, "").replace(/:/g, "h");
   if (!cleaned.includes("h") && cleaned.length >= 3) {
@@ -38,134 +27,83 @@ function normalizeWeekType(weekStr: string): string {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// API 1: Extraction des HORAIRES et JOURS
+// EXTRACTION COMPLÈTE EN UN SEUL APPEL API
 // ═══════════════════════════════════════════════════════════════
-async function extractTimesAndDays(text: string, apiKey: string): Promise<Array<{day: string, startTime: string, endTime: string, context: string}>> {
-  const prompt = `Extrais UNIQUEMENT les créneaux horaires et jours.
+async function extractSchedule(text: string): Promise<Array<{
+  title: string;
+  day: string;
+  startTime: string;
+  endTime: string;
+  weekType: string;
+  details: string;
+}>> {
+  const apiKey = process.env.MISTRAL_API_KEY;
+  if (!apiKey) throw new Error("MISTRAL_API_KEY non configurée dans .env");
 
-Pour chaque cours:
+  const prompt = `Tu es un expert en analyse d'emplois du temps universitaires. Extrais TOUS les cours de cet emploi du temps.
+
+Pour chaque cours, retourne un objet JSON avec:
+- title: nom complet de la matière (ex: "Mathématiques", "Physique")
+- day: jour de la semaine (Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi)
+- startTime: heure de début au format HHhmm (ex: "08h00", "14h30")
+- endTime: heure de fin au format HHhmm (ex: "10h00", "16h00")
+- weekType: "A" si semaine A/impaire, "B" si semaine B/paire, "BOTH" si toutes les semaines
+- details: salle, professeur, type de cours (TD/TP/CM) séparés par " - "
+
+RÈGLES STRICTES:
+1. L'heure de fin DOIT être supérieure à l'heure de début
+2. Format horaire: HHhmm (08h00, 14h30, etc.)
+3. Jours valides: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi
+4. Extrais TOUS les cours, même s'ils se répètent
+5. Si une information manque, utilise des valeurs par défaut raisonnables
+
+Retourne un JSON avec cette structure:
 {
-  "slots": [
-    {"day": "Mardi", "startTime": "08h00", "endTime": "10h00", "context": "Mathématiques"}
+  "courses": [
+    {
+      "title": "Mathématiques",
+      "day": "Lundi",
+      "startTime": "08h00",
+      "endTime": "10h00",
+      "weekType": "BOTH",
+      "details": "Salle C201 - Prof. Dupont - CM"
+    }
   ]
 }
 
-RÈGLES:
-- Horaire: HHhmm (08h00, 14h30)
-- Fin > Début
-- Jours: Lundi à Samedi
-- TOUS les créneaux!
+TEXTE DE L'EMPLOI DU TEMPS:
+${text.substring(0, 8000)}
 
-TEXTE:
-${text.substring(0, 6000)}
-
-JSON:`;
+Retourne UNIQUEMENT le JSON, sans texte avant ou après:`;
 
   const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: "mistral-small-latest", messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" }, temperature: 0.01, max_tokens: 1500 })
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: "mistral-small-latest",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+      max_tokens: 3000
+    })
   });
 
-  if (!response.ok) return [];
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Erreur API Mistral: ${error}`);
+  }
+
   const result = await response.json();
   try {
-    return JSON.parse(result.choices[0].message.content).slots || [];
-  } catch { return []; }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// API 2: Extraction des MATIÈRES
-// ═══════════════════════════════════════════════════════════════
-async function extractSubjects(text: string, apiKey: string): Promise<Array<{title: string, details: string, context: string}>> {
-  const prompt = `Extrais UNIQUEMENT les matières et détails.
-
-Pour chaque cours:
-{
-  "subjects": [
-    {"title": "Mathématiques", "details": "Salle C201", "context": "Mathématiques"}
-  ]
-}
-
-RÈGLES:
-- Matière: nom COMPLET
-- Détails: salle, professeur
-- TOUTES les matières!
-
-TEXTE:
-${text.substring(0, 6000)}
-
-JSON:`;
-
-  const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: "mistral-small-latest", messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" }, temperature: 0.01, max_tokens: 1500 })
-  });
-
-  if (!response.ok) return [];
-  const result = await response.json();
-  try {
-    return JSON.parse(result.choices[0].message.content).subjects || [];
-  } catch { return []; }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// API 3: Validation des HORAIRES
-// ═══════════════════════════════════════════════════════════════
-async function validateTimes(times: Array<any>, apiKey: string): Promise<Array<{day: string, startTime: string, endTime: string}>> {
-  const prompt = `Valide et corrige ces horaires:
-
-${JSON.stringify(times, null, 2)}
-
-Retourne:
-{"validated": [{"day": "Mardi", "startTime": "08h00", "endTime": "10h00"}]}
-
-RÈGLES:
-- Fin > Début
-- Format HHhmm
-- Jours valides: Lundi-Samedi`;
-
-  const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: "mistral-small-latest", messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" }, temperature: 0.01, max_tokens: 500 })
-  });
-
-  if (!response.ok) return times;
-  const result = await response.json();
-  try {
-    return result.validated || times;
-  } catch { return times; }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// API 4: Attribution des SEMAINES
-// ═══════════════════════════════════════════════════════════════
-async function assignWeeks(subjects: Array<any>, apiKey: string): Promise<Array<{title: string, weekType: string}>> {
-  const prompt = `Détermine la semaine pour chaque matière:
-
-${JSON.stringify(subjects.map(s => s.title), null, 2)}
-
-Retourne:
-{"assignments": [{"title": "Mathématiques", "weekType": "A"}]}
-
-RÈGLES:
-- Semaine A / impaire → "A"
-- Semaine B / paire → "B"
-- Sinon → "BOTH"`;
-
-  const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: "mistral-small-latest", messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" }, temperature: 0.01, max_tokens: 500 })
-  });
-
-  if (!response.ok) return subjects.map(s => ({ title: s.title, weekType: "BOTH" }));
-  const result = await response.json();
-  try {
-    return result.assignments || subjects.map(s => ({ title: s.title, weekType: "BOTH" }));
-  } catch { return subjects.map(s => ({ title: s.title, weekType: "BOTH" })); }
+    const parsed = JSON.parse(result.choices[0].message.content);
+    return parsed.courses || [];
+  } catch (error) {
+    console.error("Erreur parsing JSON:", error);
+    return [];
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -182,131 +120,96 @@ export async function parseAndUploadSchedule(formData: FormData) {
   const data = pdf(Buffer.from(bytes));
   const rawText = (await data).text;
 
-  // Vérifier les clés API
-  const keys = [getApiKey(0), getApiKey(1), getApiKey(2), getApiKey(3)];
-  if (!keys[0]) throw new Error("MISTRAL_API_KEY non configurée dans .env");
-
   try {
-    console.log("🚀 === 4 API EN PARALLÈLE ===");
+    console.log("🚀 Extraction de l'emploi du temps...");
     
-    // Utiliser des clés différentes si disponibles
-    const key1 = keys[0];
-    const key2 = keys[1] || key1;
-    const key3 = keys[2] || key1;
-    const key4 = keys[3] || key1;
-    
-    console.log(`📡 API 1 (horaires) avec clé #1...`);
-    console.log(`📡 API 2 (matières) avec clé #${keys[1] ? "2" : "1"}...`);
-    console.log(`📡 API 3 (validation) avec clé #${keys[2] ? "3" : "1"}...`);
-    console.log(`📡 API 4 (semaines) avec clé #${keys[3] ? "4" : "1"}...`);
+    // Un seul appel API pour tout extraire
+    const courses = await extractSchedule(rawText);
+    console.log(`✅ ${courses.length} cours extraits`);
 
-    // Appels parallèles - on stocke les promises
-    const promise1 = extractTimesAndDays(rawText, key1);
-    const promise2 = extractSubjects(rawText, key2);
-    const promise3 = validateTimes([], key3); // Sera appelé après
-    const promise4 = assignWeeks([], key4); // Sera appelé après
+    // Validation et nettoyage
+    const validEvents = courses.filter(course => {
+      // Vérifier les champs obligatoires
+      if (!course.title || !course.day || !course.startTime || !course.endTime) {
+        console.log(`❌ Cours ignoré (champs manquants):`, course);
+        return false;
+      }
 
-    // Attendre les 2 premiers
-    const [times, subjects] = await Promise.all([promise1, promise2]);
-    
-    console.log(`✅ API 1: ${times.length} créneaux`);
-    console.log(`✅ API 2: ${subjects.length} matières`);
+      // Vérifier que le jour est valide
+      if (!DAYS.includes(course.day)) {
+        console.log(`❌ Cours ignoré (jour invalide: ${course.day}):`, course);
+        return false;
+      }
 
-    // Appeler les API 3 et 4 avec les résultats
-    const [validatedTimes, weekAssignments] = await Promise.all([
-      validateTimes(times, key3),
-      assignWeeks(subjects, key4)
-    ]);
+      // Nettoyer les horaires
+      course.startTime = cleanTime(course.startTime);
+      course.endTime = cleanTime(course.endTime);
 
-    console.log(`✅ API 3: ${validatedTimes.length} validés`);
-    console.log(`✅ API 4: ${weekAssignments.length} semaines attribuées`);
+      // Vérifier le format des horaires
+      if (!/^\d{2}h\d{2}$/.test(course.startTime) || !/^\d{2}h\d{2}$/.test(course.endTime)) {
+        console.log(`❌ Cours ignoré (format horaire invalide):`, course);
+        return false;
+      }
 
-    // Fusion
-    const events = fuseData(validatedTimes, subjects, weekAssignments);
-    console.log(`📊 Fusion: ${events.length} événements`);
+      // Vérifier que l'heure de fin est après l'heure de début
+      const start = parseInt(course.startTime.replace("h", ""));
+      const end = parseInt(course.endTime.replace("h", ""));
+      if (end <= start) {
+        console.log(`❌ Cours ignoré (fin <= début):`, course);
+        return false;
+      }
 
-    // Filtrage
-    const validEvents = events.filter(e => {
-      if (!e.title || !e.day || !e.startTime || !e.endTime) return false;
-      if (!DAYS.includes(e.day)) return false;
+      // Normaliser le type de semaine
+      course.weekType = normalizeWeekType(course.weekType || "BOTH");
       
-      e.startTime = cleanTime(e.startTime);
-      e.endTime = cleanTime(e.endTime);
-      if (!/^\d{2}h\d{2}$/.test(e.startTime) || !/^\d{2}h\d{2}$/.test(e.endTime)) return false;
-      
-      const start = parseInt(e.startTime.replace("h", ""));
-      const end = parseInt(e.endTime.replace("h", ""));
-      if (end <= start) return false;
+      // Assurer que details existe
+      course.details = course.details || "";
 
-      e.weekType = normalizeWeekType(e.weekType);
-      e.details = e.details || "";
-      e.color = "Gris";
       return true;
     });
 
-    // Dédoublonnage
+    console.log(`✅ ${validEvents.length} cours valides après filtrage`);
+
+    // Dédoublonnage (garder les cours uniques)
     const seen = new Set<string>();
-    const uniqueEvents = validEvents.filter(e => {
-      const key = `${e.day}-${e.startTime}-${e.title}-${e.weekType}`;
-      if (seen.has(key)) return false;
+    const uniqueEvents = validEvents.filter(course => {
+      const key = `${course.day}-${course.startTime}-${course.endTime}-${course.title}-${course.weekType}`;
+      if (seen.has(key)) {
+        console.log(`⚠️ Doublon ignoré:`, course);
+        return false;
+      }
       seen.add(key);
       return true;
     });
 
-    console.log(`✅ ${uniqueEvents.length} événements finaux`);
+    console.log(`✅ ${uniqueEvents.length} cours uniques finaux`);
 
+    // Sauvegarder dans la base de données
     if (uniqueEvents.length > 0) {
+      // Supprimer l'ancien emploi du temps
       await db.event.deleteMany({ where: { userId } });
+      
+      // Créer les nouveaux événements
       await db.event.createMany({
-        data: uniqueEvents.map(e => ({
+        data: uniqueEvents.map(course => ({
           userId,
-          title: e.title,
-          day: e.day,
-          startTime: e.startTime,
-          endTime: e.endTime,
-          weekType: e.weekType,
-          details: e.details,
-          color: e.color
+          title: course.title,
+          day: course.day,
+          startTime: course.startTime,
+          endTime: course.endTime,
+          weekType: course.weekType,
+          details: course.details,
+          color: "Gris"
         }))
       });
+
+      console.log(`💾 ${uniqueEvents.length} cours sauvegardés en base de données`);
     }
 
     revalidatePath("/dashboard/schedule");
     return { success: true, count: uniqueEvents.length };
   } catch (error) {
-    console.error("Erreur:", error);
+    console.error("❌ Erreur lors de l'analyse:", error);
     throw new Error(error instanceof Error ? error.message : "Erreur d'importation");
   }
-}
-
-function fuseData(times: Array<any>, subjects: Array<any>, weeks: Array<any>): Array<any> {
-  const events: Array<any> = [];
-  const weekMap = new Map<string, string>();
-  weeks.forEach(w => weekMap.set(w.title, w.weekType));
-
-  times.forEach((time, tIdx) => {
-    let bestSubject = subjects[0] || { title: "Cours", details: "" };
-    let bestScore = 0;
-
-    subjects.forEach((subj: any, sIdx: number) => {
-      const orderScore = 1 / (Math.abs(tIdx - sIdx) + 1);
-      const score = orderScore * 10;
-      if (score > bestScore) {
-        bestScore = score;
-        bestSubject = subj;
-      }
-    });
-
-    events.push({
-      title: bestSubject.title || "Cours",
-      day: time.day,
-      startTime: time.startTime,
-      endTime: time.endTime,
-      weekType: weekMap.get(bestSubject.title) || "BOTH",
-      details: bestSubject.details || "",
-      color: "Gris"
-    });
-  });
-
-  return events;
 }
